@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 
 const { connectDB } = require('./config/database');
 const swaggerSpecs = require('./config/swagger');
+const swaggerMobileSpecs = require('./config/swagger-mobile');
 const sessionMiddleware = require('./middleware/session');
 
 const app = express();
@@ -151,7 +152,7 @@ app.use(
   })
 );
 
-// Swagger UI setup
+// Swagger UI setup for Web
 app.use(
   '/docs',
   swaggerUi.serve,
@@ -190,6 +191,45 @@ app.use(
   })
 );
 
+// Swagger UI setup for Mobile
+app.use(
+  '/m/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerMobileSpecs, {
+    explorer: true,
+    customCss: `
+      .swagger-ui .topbar { display: none }
+      .swagger-ui .info .title { color: #4caf50 }
+      .server-info { 
+        background: #e8f5e9; 
+        padding: 10px; 
+        border-radius: 5px; 
+        margin: 10px 0;
+        border-left: 4px solid #4caf50;
+      }
+    `,
+    customSiteTitle: 'Rentverse Mobile API Documentation',
+    customfavIcon: '/favicon.ico',
+    swaggerOptions: {
+      persistAuthorization: true,
+      servers: [
+        {
+          url:
+            process.env.NGROK_URL ||
+            `http://localhost:${process.env.PORT || 3005}`,
+          description: process.env.NGROK_URL
+            ? `🌐 Ngrok Tunnel: ${process.env.NGROK_URL}`
+            : `🏠 Local Server: http://localhost:${process.env.PORT || 3005}`,
+        },
+        {
+          url: `http://localhost:${process.env.PORT || 3005}`,
+          description: '🏠 Local Development Server',
+        },
+      ],
+    },
+  })
+);
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const uploadRoutes = require('./routes/upload');
@@ -200,7 +240,10 @@ const propertyTypeRoutes = require('./modules/propertyTypes/propertyTypes.routes
 const amenityRoutes = require('./modules/amenities/amenities.routes');
 const predictionRoutes = require('./modules/predictions/predictions.routes');
 
-// Use routes
+// Import mobile routes
+const mobileRoutes = require('./routes/mobile');
+
+// Use routes (Web)
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/users', userRoutes);
@@ -209,6 +252,9 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/property-types', propertyTypeRoutes);
 app.use('/api/amenities', amenityRoutes);
 app.use('/api/predictions', predictionRoutes);
+
+// Use routes (Mobile)
+app.use('/api/m', mobileRoutes);
 
 /**
  * @swagger
